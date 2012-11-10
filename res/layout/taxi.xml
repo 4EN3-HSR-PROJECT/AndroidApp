@@ -87,7 +87,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="5dp"
             android:contentDescription="@string/description_geolocation"
-            android:src="@drawable/device_access_location_found" />
+            android:src="@drawable/device_access_location_searching" />
     </LinearLayout>
 
     <Button

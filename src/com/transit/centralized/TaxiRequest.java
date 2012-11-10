@@ -12,10 +12,12 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.graphics.drawable.AnimationDrawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -29,13 +31,53 @@ import com.codebutler.android_websockets.SocketIOClient;
 
 public class TaxiRequest extends Activity implements OnClickListener {
 
+    // Debug variables
     private final static boolean DEBUG = true;
     public final static String TAG = "TaxiRequest";
+
+    // Instance variables
     SocketIOClient mClient;
     Button mSendRequest, mResetFields;
     ImageButton mGeoLocate;
     EditText mName, mPhoneNumber, mAddress;
     Context mContext;
+    LocateGpsTask mLocateGps;
+
+    // GPS Icon States
+    private final static int GPS_DEFAULT = 0;
+    private final static int GPS_FOUND = 1;
+    private final static int GPS_ERROR = 2;
+
+    private class LocateGpsTask extends AsyncTask<Void, Void, Location> {
+
+        @Override
+        protected Location doInBackground(Void... values) {
+            LocationManager locator = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            Location location = locator.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (location == null) {
+                location = locator.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+            return location;
+        }
+
+        @Override
+        protected void onPostExecute(Location location) {
+            Geocoder geo = new Geocoder(getBaseContext(), Locale.getDefault());
+            try {
+                Address address = geo.getFromLocation(location.getLatitude(), location.getLongitude(), 1).get(0);
+                mAddress.setText(address.getAddressLine(0) + " " + address.getAddressLine(1) + " " + address.getAddressLine(2));
+                setGeoAnimation(false, GPS_FOUND);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+                builder.setMessage("Unable to retrieve location");
+                builder.setPositiveButton(android.R.string.ok, null);
+                builder.show();
+                setGeoAnimation(false, GPS_ERROR);
+            }
+        }
+
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,6 +128,28 @@ public class TaxiRequest extends Activity implements OnClickListener {
     private void printLog(String msg) {
         if (DEBUG) {
             Log.d(TAG, msg);
+        }
+    }
+
+    private void setGeoAnimation(boolean animate, int state) {
+        if (animate) {
+            mGeoLocate.setImageResource(R.drawable.gps_locate);
+            ((AnimationDrawable) mGeoLocate.getDrawable()).start();
+        } else {
+            ((AnimationDrawable) mGeoLocate.getDrawable()).stop();
+            int resourceId = 0;
+            switch (state) {
+            case GPS_DEFAULT:
+                resourceId = R.drawable.device_access_location_searching;
+                break;
+            case GPS_FOUND:
+                resourceId = R.drawable.device_access_location_found;
+                break;
+            case GPS_ERROR:
+                resourceId = R.drawable.device_access_location_error;
+                break;
+            }
+            mGeoLocate.setImageResource(resourceId);
         }
     }
 
@@ -149,6 +213,7 @@ public class TaxiRequest extends Activity implements OnClickListener {
                 public void onError(Exception error) {
                     Log.e(TAG, "Error!", error);
                 }
+
             });
             mClient.connect();
         } else if (v == mResetFields) {
@@ -156,22 +221,14 @@ public class TaxiRequest extends Activity implements OnClickListener {
             mPhoneNumber.setText("");
             mAddress.setText("");
         } else if (v == mGeoLocate) {
-            LocationManager locator = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            Location l = locator.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (l == null) {
-                l = locator.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            if (mLocateGps == null || mLocateGps.getStatus().equals(AsyncTask.Status.FINISHED)) {
+                mLocateGps = new LocateGpsTask();
+            } else if (!mLocateGps.getStatus().equals(AsyncTask.Status.FINISHED) && mLocateGps.cancel(true)) {
+                setGeoAnimation(false, GPS_DEFAULT);
+                return;
             }
-            Geocoder geo = new Geocoder(getBaseContext(), Locale.getDefault());
-            try {
-                Address firstAddr = geo.getFromLocation(l.getLatitude(), l.getLongitude(), 1).get(0);
-                mAddress.setText(firstAddr.getAddressLine(0) + " " + firstAddr.getAddressLine(1) + " " + firstAddr.getAddressLine(2));
-            } catch (IOException e1) {
-                e1.printStackTrace();
-                AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-                builder.setMessage("Unable to retrieve location");
-                builder.setPositiveButton(android.R.string.ok, null);
-                builder.show();
-            }
+            setGeoAnimation(true, GPS_DEFAULT);
+            mLocateGps.execute();
         }
     }
 }
