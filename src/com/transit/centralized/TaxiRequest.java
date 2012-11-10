@@ -125,7 +125,7 @@ public class TaxiRequest extends Activity implements OnClickListener {
                                     String driverName = arguments.getJSONObject(0).getString("driver");
                                     String estimatedTime = arguments.getJSONObject(0).getString("distance");
                                     builder.setMessage("Taxi driver " + driverName + " will pick you up in " + estimatedTime);
-                                    builder.setPositiveButton("Ok", null);
+                                    builder.setPositiveButton(android.R.string.ok, null);
                                 } catch (JSONException e) {
                                     e.printStackTrace();
                                 }
@@ -169,7 +169,7 @@ public class TaxiRequest extends Activity implements OnClickListener {
                 e1.printStackTrace();
                 AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
                 builder.setMessage("Unable to retrieve location");
-                builder.setPositiveButton("Ok", null);
+                builder.setPositiveButton(android.R.string.ok, null);
                 builder.show();
             }
         }
