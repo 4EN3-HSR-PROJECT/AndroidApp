@@ -104,7 +104,7 @@ public class SocketIOClient {
                     int code = Integer.parseInt(parts[0]);
                     switch (code) {
                     case 1:
-                        onConnect();
+                        mHandler.onConnect();
                         break;
                     case 2:
                         // heartbeat
@@ -165,7 +165,6 @@ public class SocketIOClient {
 
             @Override
             public void onConnect() {
-                mHandler.onConnect();
                 mSendHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
