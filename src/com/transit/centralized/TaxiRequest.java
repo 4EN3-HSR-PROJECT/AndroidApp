@@ -26,6 +26,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import com.codebutler.android_websockets.SocketIOClient;
 
@@ -93,6 +94,9 @@ public class TaxiRequest extends Activity implements OnClickListener {
         mSendRequest.setOnClickListener(this);
         mResetFields.setOnClickListener(this);
         mGeoLocate.setOnClickListener(this);
+        mName.setText("Tester");
+        mGeoLocate.performClick();
+        mPhoneNumber.setText("123-456-7888");
     }
 
     @Override
@@ -176,7 +180,28 @@ public class TaxiRequest extends Activity implements OnClickListener {
                         e.printStackTrace();
                     }
                 }
+                /**
+                 *           iosocket.on('pendingRequest', function(message) {
+            if(message != null && message.driver != undefined) {
+              var form = $(buildPostString(message));
+              $('body').append(form);
+              $(form).submit();
+            } else if (message != null) {
+              $('#name').val(message.name);
+              $('#phonenumber').val(message.number);
+              $('#pickuplocation').val(message.formatted_address);
+              $('#block-ui').show();
+              $.mobile.loading( 'show', {
+                text: 'Searching for available drivers in the area',
+                textVisible: true,
+                theme: 'a',
+                html: ""
+              });
+            }
+          });
+        });
 
+                 */
                 @Override
                 public void on(String event, final JSONArray arguments) {
                     printLog(String.format("Got event %s: %s", event, arguments.toString()));
@@ -196,11 +221,18 @@ public class TaxiRequest extends Activity implements OnClickListener {
                                 builder.show();
                             }
                         });
-                    }
-                    try {
-                        mClient.disconnect();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        try {
+                            mClient.disconnect();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } else if (event.equals("pendingRequest")) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getBaseContext(), arguments.toString(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }
                 }
 
